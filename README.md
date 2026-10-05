@@ -9,21 +9,22 @@ desktop **CustomTkinter** dan inferensi real-time.
 
 ## 📊 Ringkasan Hasil
 
-| | Model A — Sigmoid (BCE) | **Model B — Softmax (CCE)** ✅ |
-|---|---|---|
-| Topologi | 15 → 64 → 32 → 1 (Dropout) | 15 → 128 → 64 → 32 → 2 (BN + Dropout) |
-| Accuracy (Test) | 0,9709 | **0,9724** |
-| Precision | 0,9410 | **0,9740** |
-| Recall | **0,7146** | 0,7060 |
-| F1-Score | 0,8123 | **0,8186** |
-| ROC-AUC | **0,9773** | 0,9772 |
-| Ambang θ (tuned di validasi) | 0,86 | **0,85** |
+| | Model A — Sigmoid (BCE) | **Model B — Softmax (CCE)** ✅ | Model C — Softmax + SMOTENC |
+|---|---|---|---|
+| Topologi | 15 → 64 → 32 → 1 (Dropout) | 15 → 128 → 64 → 32 → 2 (BN + Dropout) | = Model B, train di-oversampling |
+| Accuracy (Test) | 0,9709 | **0,9724** | 0,9714 |
+| Precision | 0,9410 | 0,9740 | **0,9778** |
+| Recall | **0,7146** | 0,7060 | 0,6918 |
+| F1-Score | 0,8123 | **0,8186** | 0,8103 |
+| ROC-AUC | **0,9773** | 0,9772 | 0,9737 |
+| Ambang θ (tuned di validasi) | 0,86 | **0,85** | 0,90 |
 
 - Dataset Kaggle 100.000 rekam medis → cleaning (3.854 duplikat dibuang) → **96.146 sampel**.
 - Split **70 : 15 : 15 stratified** — seluruh scaler/encoder **fit hanya pada data train**
   (tanpa data leakage).
 - Class imbalance 91,5 % : 8,5 % → **class weighting balanced** + **decision threshold
-  tuning** (F1-Score pada validasi).
+  tuning** (F1-Score pada validasi); **SMOTENC diuji sebagai eksperimen pembanding**
+  (hanya pada data train) dan terbukti sedikit kalah efektif → class weighting dipertahankan.
 - Model terbaik (Model B, softmax) + pipeline diekspor ke `artifacts/` dan dipakai GUI.
 
 ## 🗂️ Struktur Repositori

@@ -263,15 +263,18 @@ def build():
         "91,5 % : 8,5 % ditangani dengan pembobotan kelas balanced dan penyesuaian ambang "
         "keputusan (decision threshold tuning) berbasis F1-Score pada data validasi.")
     pdf.para(
-        "Dua arsitektur custom Multi-Layer Perceptron dibandingkan: Model A (output sigmoid, "
-        "binary_crossentropy, Dropout) dan Model B (output softmax 2-neuron, "
+        "Tiga percobaan custom Multi-Layer Perceptron dibandingkan: Model A (output sigmoid, "
+        "binary_crossentropy, Dropout), Model B (output softmax 2-neuron, "
         "categorical_crossentropy, BatchNormalization + Dropout, lebih dalam dan lebih lebar, "
-        "learning rate lebih kecil). Pada Test Set dengan ambang optimal, Model B (Softmax) "
-        "unggul dengan Accuracy 97,24 %, Precision 97,40 %, Recall 70,60 %, F1-Score 0,8186, "
-        "dan ROC-AUC 0,9772, sehingga dipilih sebagai model produksi. Model diekspor ke "
-        "model.keras beserta preprocessor.pkl, lalu diintegrasikan ke aplikasi desktop "
-        "\"Diabetes Prediction System\" (CustomTkinter) yang melakukan inferensi real-time "
-        "dengan transformasi pipeline yang identik dengan proses training.")
+        "learning rate lebih kecil), serta Model C (arsitektur B yang sama, tetapi dilatih "
+        "pada data train hasil oversampling SMOTENC) untuk menguji teknik mitigasi imbalance. "
+        "Pada Test Set dengan ambang optimal, Model B (Softmax + class weighting) unggul "
+        "dengan Accuracy 97,24 %, Precision 97,40 %, Recall 70,60 %, F1-Score 0,8186, dan "
+        "ROC-AUC 0,9772 — mengalahkan Model C (F1 0,8103) sehingga class weighting dinyatakan "
+        "lebih efektif daripada SMOTE pada kasus ini. Model B diekspor ke model.keras beserta "
+        "preprocessor.pkl, lalu diintegrasikan ke aplikasi desktop \"Diabetes Prediction "
+        "System\" (CustomTkinter) yang melakukan inferensi real-time dengan transformasi "
+        "pipeline yang identik dengan proses training.")
 
     # ================================================================ BAB 1
     pdf.chapter("Pendahuluan")
@@ -398,6 +401,10 @@ def build():
         "dengan memaksimalkan F1-Score kelas positif (grid θ ∈ [0,10; 0,90]), lalu ambang "
         "terbaik diterapkan pada Test Set. Default θ = 0,5 tidak cocok karena pembobotan kelas "
         "menggeser distribusi probabilitas model.",
+        "Oversampling SMOTENC (eksperimen pembanding, Model C) — kelas minoritas pada data "
+        "train disintesis hingga seimbang: 67.302 → 122.730 sampel (positif 5.937 → 61.365). "
+        "SMOTENC dijalankan HANYA pada train setelah split (anti-leakage) dan arsitekturnya "
+        "identik dengan Model B agar perbandingan adil. Hasil lengkap dikomparasi pada Bab 4.",
     ])
     pdf.para(
         "Metrik akurasi TIDAK dijadikan acuan utama: evaluasi berfokus pada Recall "
@@ -408,12 +415,13 @@ def build():
     pdf.chapter("Arsitektur Model — Sigmoid vs Softmax")
     pdf.h2("3.1  Desain Dua Arsitektur Custom MLP")
     pdf.para(
-        "Kedua model dibangun dari awal (Sequential/Functional Keras) dengan variasi "
-        "kedalaman, lebar, regularisasi, dan learning rate sesuai spesifikasi tugas. "
+        "Kedua arsitektur dibangun dari awal (Functional Keras) dengan variasi kedalaman, "
+        "lebar, regularisasi, dan learning rate sesuai spesifikasi tugas; arsitektur Model B "
+        "kemudian dipakai ulang sebagai Model C pada eksperimen SMOTENC (Bab 2.5 & 4.6). "
         "Callback: EarlyStopping(patience=7, restore_best_weights) dan "
         "ReduceLROnPlateau(factor=0,5, patience=3). Batch size 1024, maksimal 60 epoch; "
-        "keduanya konvergen stabil hingga epoch 59 dengan best validation loss 0,194 (A) dan "
-        "0,204 (B). Seed global 42 untuk reproducibility.")
+        "konvergensi stabil dengan best validation loss 0,194 (A), 0,204 (B), dan 0,191 (C, "
+        "early stopping epoch 35). Seed global 42 untuk reproducibility.")
     pdf.table(
         ["Aspek", "Model A — Sigmoid", "Model B — Softmax"],
         [
@@ -456,29 +464,44 @@ def build():
     pdf.h2("4.1  Decision Threshold Tuning (Data Validation)")
     pdf.para(
         "Karena pembobotan kelas menggeser distribusi probabilitas, ambang default 0,5 bukan "
-        "pilihan terbaik. Sweep θ pada data validasi menghasilkan θ* = 0,86 untuk Model A dan "
-        "θ* = 0,85 untuk Model B (F1 validasi 0,790 untuk keduanya). Ambang inilah yang "
-        "disimpan ke preprocessor.pkl dan dipakai aplikasi desktop.")
+        "pilihan terbaik. Sweep θ pada data validasi menghasilkan θ* = 0,86 untuk Model A, "
+        "θ* = 0,85 untuk Model B, dan θ* = 0,90 untuk Model C (F1 validasi ≈ 0,79 untuk "
+        "ketiganya). Ambang model terbaik inilah yang disimpan ke preprocessor.pkl dan dipakai "
+        "aplikasi desktop.")
     pdf.figure("fig_threshold_sweep.png",
                "Gambar 4.1  Sweep ambang keputusan pada data Validation: F1-Score kelas "
                "positif vs θ untuk kedua model.", w=145)
     pdf.h2("4.2  Metrik Klinis pada Test Set")
+    pdf.h3("a) Titik operasi default θ = 0,50")
     pdf.table(
-        ["Metrik", "Model A θ=0,50", "Model A θ*=0,86", "Model B θ=0,50", "Model B θ*=0,85"],
+        ["Metrik", "Model A (Sigmoid)", "Model B (Softmax)", "Model C (Softmax+SMOTE)"],
         [
-            ["Accuracy", "0,8954", "0,9709", "0,8981", "0,9724"],
-            ["Precision", "0,4544", "0,9410", "0,4611", "0,9740"],
-            ["Recall (Sensitivitas)", "0,9237", "0,7146", "0,9167", "0,7060"],
-            ["F1-Score", "0,6091", "0,8123", "0,6135", "0,8186"],
-            ["ROC-AUC", "0,9773", "0,9773", "0,9772", "0,9772"],
-            ["PR-AUC (AP)", "0,8847", "0,8847", "0,8840", "0,8840"],
+            ["Accuracy", "0,8954", "0,8981", "0,8987"],
+            ["Precision", "0,4544", "0,4611", "0,4616"],
+            ["Recall (Sensitivitas)", "0,9237", "0,9167", "0,8923"],
+            ["F1-Score", "0,6091", "0,6135", "0,6084"],
+            ["ROC-AUC", "0,9773", "0,9772", "0,9772"],
+            ["PR-AUC (AP)", "0,8847", "0,8840", "0,8840"],
         ],
-        widths=[44, (W - 44) / 4, (W - 44) / 4, (W - 44) / 4, (W - 44) / 4],
+        widths=[44, (W - 44) / 3, (W - 44) / 3, (W - 44) / 3],
+    )
+    pdf.h3("b) Titik operasi ambang optimal θ* (hasil tuning)")
+    pdf.table(
+        ["Metrik", "Model A (θ*=0,86)", "Model B (θ*=0,85)", "Model C (θ*=0,90)"],
+        [
+            ["Accuracy", "0,9709", "0,9724", "0,9714"],
+            ["Precision", "0,9410", "0,9740", "0,9778"],
+            ["Recall (Sensitivitas)", "0,7146", "0,7060", "0,6918"],
+            ["F1-Score", "0,8123", "0,8186", "0,8103"],
+            ["ROC-AUC", "0,9773", "0,9772", "0,9737"],
+            ["PR-AUC (AP)", "0,8847", "0,8840", "0,8728"],
+        ],
+        widths=[44, (W - 44) / 3, (W - 44) / 3, (W - 44) / 3],
     )
     pdf.para(
-        "Tanpa tuning (θ=0,5) kedua model sangat sensitif (Recall > 0,91) tetapi precision "
+        "Tanpa tuning (θ=0,5) ketiga model sangat sensitif (Recall 0,89–0,92) tetapi precision "
         "rendah (±0,46): hampir separuh alarm positif adalah palsu. Dengan ambang optimal, "
-        "precision melonjak ke 0,94–0,97 dengan recall tetap 0,71 — titik operasi yang "
+        "precision melonjak ke 0,94–0,98 dengan recall tetap 0,69–0,71 — titik operasi yang "
         "sehat untuk alat skrining pendamping tenaga medis. Pemilihan θ dapat digeser sesuai "
         "kebijakan klinis: turunkan θ bila sensitivitas harus diprioritaskan.")
     pdf.h2("4.3  Confusion Matrix (Test Set, θ*)")
@@ -489,27 +512,36 @@ def build():
         [
             ["Model A (Sigmoid, θ=0,86)", "13.093", "57", "363", "909"],
             ["Model B (Softmax, θ=0,85)", "13.126", "24", "374", "898"],
+            ["Model C (Softmax+SMOTE, θ=0,90)", "13.130", "20", "392", "880"],
         ],
         widths=[62, (W - 62) / 4, (W - 62) / 4, (W - 62) / 4, (W - 62) / 4],
     )
     pdf.h2("4.4  ROC & Precision–Recall Curve")
     pdf.figure("fig_roc_curve.png",
-               "Gambar 4.3  ROC Curve: kedua model hampir identik (AUC ≈ 0,977).", w=110)
+               "Gambar 4.3  ROC Curve: ketiga model hampir identik (AUC 0,974–0,977).", w=110)
     pdf.figure("fig_pr_curve.png",
-               "Gambar 4.4  Precision–Recall Curve: AP ≈ 0,884 — jauh di atas baseline "
+               "Gambar 4.4  Precision–Recall Curve: AP 0,873–0,885 — jauh di atas baseline "
                "prevalensi 0,088.", w=110)
     pdf.h2("4.5  Riwayat Pelatihan")
     pdf.figure("fig_training_history.png",
                "Gambar 4.5  Kurva loss & akurasi train/validation: konvergensi stabil tanpa "
                "overfitting signifikan (gap train–val kecil).", w=165)
-    pdf.h2("4.6  Seleksi Model Terbaik")
+    pdf.h2("4.6  Seleksi Model Terbaik & Peran SMOTE")
     pdf.para(
         "Kriteria seleksi utama: F1-Score kelas positif pada Test Set dengan ambang optimal "
         "(metrik paling informatif untuk data timpang), ROC-AUC sebagai pembanding. Hasil: "
-        "Model B (Softmax) unggul tipis namun konsisten — F1 0,8186 vs 0,8123, Precision "
-        "0,9740 vs 0,9410, Accuracy 0,9724 vs 0,9709, dengan jumlah False Positive hanya "
-        "setengah dari Model A (24 vs 57). ROC-AUC keduanya praktis identik (0,9772 vs "
-        "0,9773).")
+        "Model B (Softmax, class weighting) unggul — F1 0,8186, Precision 0,9740, Recall "
+        "0,7060, Accuracy 0,9724, ROC-AUC 0,9772 — diikuti Model A (F1 0,8123) dan Model C "
+        "(F1 0,8103).")
+    pdf.para(
+        "Temuan empiris mengenai SMOTE: dengan arsitektur yang identik (Model B vs Model C), "
+        "oversampling SMOTENC TIDAK mengungguli class weighting — F1 turun 0,8186 → 0,8103, "
+        "ROC-AUC turun 0,9772 → 0,9737, dan recall pun sedikit lebih rendah (0,6918 vs "
+        "0,7060) meski precision tertinggi (0,9778). Sintesis sampel interpolatif pada data "
+        "berdimensi 15 dengan fitur kuat (HbA1c, glukosa) tidak menambah informasi baru, "
+        "malah menambah biaya komputasi (train 122.730 vs 67.302 sampel) dan risiko artefak "
+        "sintetis. Karena itu class weighting + threshold tuning dipertahankan sebagai teknik "
+        "mitigasi imbalance utama, dan Model B ditetapkan sebagai model produksi.")
     pdf.para(
         "Justifikasi output layer: secara teoretis sigmoid dan softmax ekuivalen untuk "
         "klasifikasi biner; secara empiris pada proyek ini arsitektur softmax dengan "
@@ -624,7 +656,9 @@ def build():
         "70:15:15 mendahului preprocessing; scaler/encoder di-fit hanya pada train; objek "
         "yang sama dipakai ulang saat inferensi GUI.",
         "Class imbalance 10,3 : 1 diatasi dengan class weighting balanced dan decision "
-        "threshold tuning — akurasi tidak dijadikan metrik tunggal (Accuracy Paradox).",
+        "threshold tuning — akurasi tidak dijadikan metrik tunggal (Accuracy Paradox). "
+        "Oversampling SMOTENC diuji sebagai pembanding dan terbukti sedikit kalah efektif "
+        "(F1 0,8103 vs 0,8186), menegaskan pilihan class weighting.",
         "Komparasi dua arsitektur custom MLP menunjukkan Model B (Softmax + BatchNorm, "
         "15→128→64→32→2) sebagai yang terbaik: Accuracy 97,24 %, Precision 97,40 %, Recall "
         "70,60 %, F1 0,8186, ROC-AUC 0,977 pada Test Set.",
