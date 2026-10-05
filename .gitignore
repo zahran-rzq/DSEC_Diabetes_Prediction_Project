@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Berkas pengumpulan (dibuat ulang lewat src/make_submission_zip.py)
+*.zip
+
+# Cache
+.pytest_cache/
