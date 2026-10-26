@@ -12,13 +12,18 @@
             validasi input, transformasi pipeline identik dengan training,
             dan inferensi real-time.
 
+ Tema     : LIGHT (sesuai ketentuan ETS) — seluruh antarmuka memakai palet
+            terang; warna merah/hijau hanya sebagai status semantik hasil.
+
+ Teks hasil wajib (ETS) : "Risiko Diabetes" / "Tidak Berisiko Diabetes"
+
  Cara menjalankan :
      python app.py
      python app.py --artifacts <folder>      # opsional: lokasi artefak lain
 
  Kebutuhan : Python 3.9+, tensorflow, scikit-learn, pandas, numpy, joblib
              (GUI memakai CustomTkinter; bila tidak terpasang, otomatis
-              menggunakan Tkinter bawaan Python).
+              menggunakan Tkinter bawaan Python — keduanya light theme).
 ================================================================================
 """
 
@@ -56,10 +61,31 @@ NUMERIC_RANGES = {
     "blood_glucose_level": (40.0, 600.0, "Glukosa Darah (mg/dL)"),
 }
 
-# Warna tema
-COLOR_OK      = "#2E9E5B"   # hijau  -> NEGATIF
-COLOR_DANGER  = "#D64545"   # merah  -> POSITIF
+# Teks hasil prediksi — WAJIB sesuai ketentuan ETS
+TEXT_POSITIVE = "Risiko Diabetes"
+TEXT_NEGATIVE = "Tidak Berisiko Diabetes"
+
+# Warna tema (LIGHT) — merah/hijau hanya status semantik
+COLOR_OK      = "#2E9E5B"   # hijau  -> Tidak Berisiko Diabetes
+COLOR_DANGER  = "#D64545"   # merah  -> Risiko Diabetes
 COLOR_NEUTRAL = "#8A94A6"
+
+# Palet light theme
+PALETTE = {
+    "bg":        "#F4F6FA",   # latar window
+    "panel":     "#FFFFFF",   # kartu panel
+    "header":    "#2F6FED",   # pita judul (aksen)
+    "header_sub":"#DCE7FB",
+    "text":      "#1F2937",   # teks utama
+    "text_muted":"#6B7280",   # teks sekunder
+    "idle":      "#E8ECF3",   # kotak status saat menunggu
+    "idle_text": "#374151",
+    "btn_idle":  "#D8DEE9",
+    "btn_idle_h":"#C3CCDA",
+    "flag":      "#B45309",   # amber gelap (faktor risiko, kontras di panel putih)
+    "accent":    "#2F6FED",
+    "accent_h":  "#1F55C4",
+}
 
 
 # ============================================================================
@@ -173,7 +199,7 @@ class DiabetesPredictor:
 
 
 # ============================================================================
-# TAMPILAN — varian GUI (CustomTkinter modern / Tkinter fallback)
+# TAMPILAN — varian GUI (CustomTkinter modern / Tkinter fallback), LIGHT THEME
 # ============================================================================
 def _msg_error(parent, title: str, message: str) -> None:
     """Popup error — import messagebox secara lazy agar backend bebas tkinter."""
@@ -208,21 +234,21 @@ def build_ctk_app(predictor: DiabetesPredictor):
     import customtkinter as ctk
     import tkinter as tk  # noqa: F401 — dibutuhkan CTk (StringVar, dsb.)
 
-    ctk.set_appearance_mode("dark")
+    ctk.set_appearance_mode("light")        # ETS: light theme keseluruhan
     ctk.set_default_color_theme("blue")
 
     class DiabetesAppCTk(ctk.CTk, _AppLogicMixin):
         FONT = "Segoe UI"
 
         def __init__(self, predictor: DiabetesPredictor):
-            super().__init__(fg_color="#101623")
+            super().__init__(fg_color=PALETTE["bg"])
             self.predictor = predictor
             self.title("Diabetes Prediction System — Sistem Prediksi Diabetes")
             self.geometry("1060x680")
             self.minsize(980, 620)
 
             # ---------- Header ----------
-            header = ctk.CTkFrame(self, fg_color="#1B2A4A", corner_radius=0)
+            header = ctk.CTkFrame(self, fg_color=PALETTE["header"], corner_radius=0)
             header.pack(fill="x")
             ctk.CTkLabel(
                 header, text="🩺  DIABETES PREDICTION SYSTEM",
@@ -232,7 +258,7 @@ def build_ctk_app(predictor: DiabetesPredictor):
                 header,
                 text="Clinical Decision Support System · Custom Deep Neural Network · "
                      "Elektronika Cerdas FTEIC ITS",
-                font=ctk.CTkFont(self.FONT, 12), text_color="#9FB3D9",
+                font=ctk.CTkFont(self.FONT, 12), text_color=PALETTE["header_sub"],
             ).pack(anchor="w", padx=24, pady=(0, 12))
 
             # ---------- Konten dua panel ----------
@@ -250,22 +276,22 @@ def build_ctk_app(predictor: DiabetesPredictor):
                       f"Engine: TensorFlow {tf.__version__}   |   "
                       f"Artefak: {predictor.artifacts_dir.name}/")
             ctk.CTkLabel(self, text=status, font=ctk.CTkFont(self.FONT, 11),
-                         text_color="#7C8AA5", anchor="w").pack(fill="x", padx=24, pady=(0, 8))
+                         text_color=PALETTE["text_muted"], anchor="w").pack(fill="x", padx=24, pady=(0, 8))
 
             self._reset_form()
             self._clear_result()
 
         # ---------------- Panel kiri: Patient Information ---------------- #
         def _build_left_panel(self, parent):
-            panel = ctk.CTkFrame(parent, fg_color="#182338", corner_radius=14)
+            panel = ctk.CTkFrame(parent, fg_color=PALETTE["panel"], corner_radius=14)
             panel.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
 
             ctk.CTkLabel(panel, text="👤  Patient Information",
                          font=ctk.CTkFont(self.FONT, 18, "bold"),
-                         text_color="white").grid(row=0, column=0, columnspan=2,
+                         text_color=PALETTE["text"]).grid(row=0, column=0, columnspan=2,
                                                   sticky="w", padx=22, pady=(18, 6))
             ctk.CTkLabel(panel, text="Lengkapi 8 data klinis pasien, lalu tekan Predict.",
-                         font=ctk.CTkFont(self.FONT, 12), text_color="#9FB3D9"
+                         font=ctk.CTkFont(self.FONT, 12), text_color=PALETTE["text_muted"]
                          ).grid(row=1, column=0, columnspan=2, sticky="w", padx=22, pady=(0, 10))
 
             self.opts: dict[str, ctk.CTkOptionMenu] = {}
@@ -273,6 +299,7 @@ def build_ctk_app(predictor: DiabetesPredictor):
 
             def add_combo(r, label, values):
                 ctk.CTkLabel(panel, text=label, font=ctk.CTkFont(self.FONT, 13),
+                             text_color=PALETTE["text"],
                              anchor="w").grid(row=r, column=0, sticky="ew", padx=(22, 8), pady=6)
                 w = ctk.CTkOptionMenu(panel, values=values, width=210, height=32,
                                       font=ctk.CTkFont(self.FONT, 13))
@@ -281,6 +308,7 @@ def build_ctk_app(predictor: DiabetesPredictor):
 
             def add_entry(r, label, placeholder):
                 ctk.CTkLabel(panel, text=label, font=ctk.CTkFont(self.FONT, 13),
+                             text_color=PALETTE["text"],
                              anchor="w").grid(row=r, column=0, sticky="ew", padx=(22, 8), pady=6)
                 w = ctk.CTkEntry(panel, width=210, height=32,
                                  font=ctk.CTkFont(self.FONT, 13), placeholder_text=placeholder)
@@ -302,48 +330,49 @@ def build_ctk_app(predictor: DiabetesPredictor):
 
         # ---------------- Panel kanan: Diabetes Diagnosis ---------------- #
         def _build_right_panel(self, parent):
-            panel = ctk.CTkFrame(parent, fg_color="#182338", corner_radius=14)
+            panel = ctk.CTkFrame(parent, fg_color=PALETTE["panel"], corner_radius=14)
             panel.grid(row=0, column=1, sticky="nsew", padx=(12, 0))
             panel.grid_rowconfigure(6, weight=1)
 
             ctk.CTkLabel(panel, text="📋  Diabetes Diagnosis",
                          font=ctk.CTkFont(self.FONT, 18, "bold"),
-                         text_color="white").grid(row=0, column=0, sticky="w",
+                         text_color=PALETTE["text"]).grid(row=0, column=0, sticky="w",
                                                   padx=22, pady=(18, 10))
 
             self.status_label = ctk.CTkLabel(
                 panel, text="—", font=ctk.CTkFont(self.FONT, 26, "bold"),
-                text_color="white", fg_color="#2A3550", corner_radius=14, height=86,
+                text_color=PALETTE["idle_text"], fg_color=PALETTE["idle"], corner_radius=14, height=86,
             )
             self.status_label.grid(row=1, column=0, sticky="ew", padx=22, pady=6)
 
             self.conf_label = ctk.CTkLabel(panel, text="Confidence: —",
                                            font=ctk.CTkFont(self.FONT, 16, "bold"),
-                                           text_color="#E8EEF9")
+                                           text_color=PALETTE["text"])
             self.conf_label.grid(row=2, column=0, pady=(6, 0))
             self.prob_label = ctk.CTkLabel(panel, text="P(diabetes) = —",
-                                           font=ctk.CTkFont(self.FONT, 13), text_color="#9FB3D9")
+                                           font=ctk.CTkFont(self.FONT, 13), text_color=PALETTE["text_muted"])
             self.prob_label.grid(row=3, column=0)
             self.flags_label = ctk.CTkLabel(panel, text="", font=ctk.CTkFont(self.FONT, 12),
-                                            text_color="#F0C75E", justify="left", wraplength=400)
+                                            text_color=PALETTE["flag"], justify="left", wraplength=400)
             self.flags_label.grid(row=4, column=0, pady=(8, 0))
 
             buttons = ctk.CTkFrame(panel, fg_color="transparent")
             buttons.grid(row=5, column=0, pady=16)
             ctk.CTkButton(buttons, text="🔍  Predict", width=170, height=44,
                           font=ctk.CTkFont(self.FONT, 16, "bold"),
-                          fg_color="#2F6FED", hover_color="#1F55C4",
+                          fg_color=PALETTE["accent"], hover_color=PALETTE["accent_h"],
                           command=self._do_predict).grid(row=0, column=0, padx=8)
             ctk.CTkButton(buttons, text="↺  Reset", width=120, height=44,
                           font=ctk.CTkFont(self.FONT, 15),
-                          fg_color="#3A4763", hover_color="#2B3550",
+                          fg_color=PALETTE["btn_idle"], hover_color=PALETTE["btn_idle_h"],
+                          text_color=PALETTE["idle_text"],
                           command=self._do_reset).grid(row=0, column=1, padx=8)
 
             self.note_label = ctk.CTkLabel(
                 panel,
                 text="Aplikasi ini adalah alat bantu edukasi & pendukung keputusan.\n"
                      "Diagnosis definitif tetap harus dilakukan oleh tenaga medis.",
-                font=ctk.CTkFont(self.FONT, 11), text_color="#7C8AA5", justify="center",
+                font=ctk.CTkFont(self.FONT, 11), text_color=PALETTE["text_muted"], justify="center",
             )
             self.note_label.grid(row=7, column=0, pady=(0, 14))
 
@@ -373,23 +402,26 @@ def build_ctk_app(predictor: DiabetesPredictor):
 
         def _show_result(self, result: dict) -> None:
             if result["positive"]:
-                self.status_label.configure(text="✚  POSITIVE — DIABETIC",
-                                            fg_color=COLOR_DANGER)
+                self.status_label.configure(text=f"✚  {TEXT_POSITIVE}",
+                                            fg_color=COLOR_DANGER,
+                                            text_color="white")
                 conf_txt = f"Confidence: {result['confidence'] * 100:.1f}%  (P = {result['prob']:.3f})"
             else:
-                self.status_label.configure(text="✔  NEGATIVE — NON-DIABETIC",
-                                            fg_color=COLOR_OK)
+                self.status_label.configure(text=f"✔  {TEXT_NEGATIVE}",
+                                            fg_color=COLOR_OK,
+                                            text_color="white")
                 conf_txt = f"Confidence: {result['confidence'] * 100:.1f}%  (P = {result['prob']:.3f})"
             self.conf_label.configure(text=conf_txt)
             self.prob_label.configure(
                 text=f"P(diabetes) = {result['prob']:.4f}   |   ambang θ = {result['threshold']:.2f}"
-                     f"   →   kelas = {'Positif' if result['positive'] else 'Negatif'}")
+                     f"   →   hasil: {TEXT_POSITIVE if result['positive'] else TEXT_NEGATIVE}")
             self.flags_label.configure(
                 text=("⚠ Faktor risiko terdeteksi:\n• " + "\n• ".join(result["flags"]))
                 if result["flags"] else "")
 
         def _clear_result(self) -> None:
-            self.status_label.configure(text="Menunggu prediksi…", fg_color="#2A3550")
+            self.status_label.configure(text="Menunggu prediksi…", fg_color=PALETTE["idle"],
+                                        text_color=PALETTE["idle_text"])
             self.conf_label.configure(text="Confidence: —")
             self.prob_label.configure(text="P(diabetes) = —")
             self.flags_label.configure(text="")
@@ -399,11 +431,12 @@ def build_ctk_app(predictor: DiabetesPredictor):
 
 # ------------------------------- Tkinter ---------------------------------- #
 def build_tk_app(predictor: DiabetesPredictor):
-    """Fallback tanpa dependensi tambahan: Tkinter + ttk bergaya flat."""
+    """Fallback tanpa dependensi tambahan: Tkinter + ttk bergaya flat (light)."""
     import tkinter as tk
     from tkinter import ttk
 
-    BG, PANEL, FG, ACCENT = "#101623", "#182338", "#E8EEF9", "#2F6FED"
+    BG, PANEL, FG, ACCENT = (PALETTE["bg"], PALETTE["panel"],
+                             PALETTE["text"], PALETTE["accent"])
 
     class DiabetesAppTk(tk.Tk, _AppLogicMixin):
         def __init__(self, predictor: DiabetesPredictor):
@@ -426,13 +459,13 @@ def build_tk_app(predictor: DiabetesPredictor):
                    foreground=[("readonly", FG)])
 
             # Header
-            header = tk.Frame(self, bg="#1B2A4A")
+            header = tk.Frame(self, bg=PALETTE["header"])
             header.pack(fill="x")
-            tk.Label(header, text="🩺  DIABETES PREDICTION SYSTEM", bg="#1B2A4A", fg="white",
+            tk.Label(header, text="🩺  DIABETES PREDICTION SYSTEM", bg=PALETTE["header"], fg="white",
                      font=("Segoe UI", 20, "bold")).pack(anchor="w", padx=24, pady=(12, 0))
             tk.Label(header, text="Clinical Decision Support System · Custom Deep Neural "
                                   "Network · Elektronika Cerdas FTEIC ITS",
-                     bg="#1B2A4A", fg="#9FB3D9",
+                     bg=PALETTE["header"], fg=PALETTE["header_sub"],
                      font=("Segoe UI", 10)).pack(anchor="w", padx=24, pady=(0, 10))
 
             content = tk.Frame(self, bg=BG)
@@ -447,21 +480,21 @@ def build_tk_app(predictor: DiabetesPredictor):
             status = (f"Model termuat: {predictor.best_model_name}   |   "
                       f"Ambang θ = {predictor.threshold:.2f}   |   "
                       f"TensorFlow {tf.__version__}")
-            tk.Label(self, text=status, bg=BG, fg="#7C8AA5", anchor="w",
+            tk.Label(self, text=status, bg=BG, fg=PALETTE["text_muted"], anchor="w",
                      font=("Segoe UI", 9)).pack(fill="x", padx=24, pady=(0, 6))
 
             self._reset_form()
             self._clear_result()
 
         def _build_left(self, parent):
-            panel = tk.Frame(parent, bg=PANEL, highlightbackground="#2A3550",
+            panel = tk.Frame(parent, bg=PANEL, highlightbackground="#D5DCE8",
                              highlightthickness=1)
             panel.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
-            tk.Label(panel, text="👤  Patient Information", bg=PANEL, fg="white",
+            tk.Label(panel, text="👤  Patient Information", bg=PANEL, fg=PALETTE["text"],
                      font=("Segoe UI", 15, "bold")).grid(row=0, column=0, columnspan=2,
                                                          sticky="w", padx=22, pady=(16, 4))
             tk.Label(panel, text="Lengkapi 8 data klinis pasien, lalu tekan Predict.",
-                     bg=PANEL, fg="#9FB3D9", font=("Segoe UI", 10)).grid(
+                     bg=PANEL, fg=PALETTE["text_muted"], font=("Segoe UI", 10)).grid(
                 row=1, column=0, columnspan=2, sticky="w", padx=22, pady=(0, 8))
 
             self.opts: dict[str, ttk.Combobox] = {}
@@ -480,9 +513,9 @@ def build_tk_app(predictor: DiabetesPredictor):
                 tk.Label(panel, text=label, bg=PANEL, fg=FG, anchor="w",
                          font=("Segoe UI", 11)).grid(row=r, column=0, sticky="ew",
                                                      padx=(22, 8), pady=5)
-                w = tk.Entry(panel, width=26, bg="#0F1728", fg=FG,
+                w = tk.Entry(panel, width=26, bg="#FFFFFF", fg=FG,
                              insertbackground=FG, relief="flat", font=("Segoe UI", 11),
-                             highlightbackground="#2A3550", highlightthickness=1)
+                             highlightbackground="#C9D2E0", highlightthickness=1)
                 w.grid(row=r, column=1, sticky="ew", padx=(0, 22), pady=5, ipady=4)
                 return w
 
@@ -498,16 +531,16 @@ def build_tk_app(predictor: DiabetesPredictor):
             panel.grid_rowconfigure(r, weight=1)
 
         def _build_right(self, parent):
-            panel = tk.Frame(parent, bg=PANEL, highlightbackground="#2A3550",
+            panel = tk.Frame(parent, bg=PANEL, highlightbackground="#D5DCE8",
                              highlightthickness=1)
             panel.grid(row=0, column=1, sticky="nsew", padx=(12, 0))
             panel.grid_rowconfigure(6, weight=1)
 
-            tk.Label(panel, text="📋  Diabetes Diagnosis", bg=PANEL, fg="white",
+            tk.Label(panel, text="📋  Diabetes Diagnosis", bg=PANEL, fg=PALETTE["text"],
                      font=("Segoe UI", 15, "bold")).grid(row=0, column=0, sticky="w",
                                                           padx=22, pady=(16, 8))
 
-            self.status_label = tk.Label(panel, text="—", bg="#2A3550", fg="white",
+            self.status_label = tk.Label(panel, text="—", bg=PALETTE["idle"], fg=PALETTE["idle_text"],
                                          font=("Segoe UI", 20, "bold"), pady=26)
             self.status_label.grid(row=1, column=0, sticky="ew", padx=22, pady=6)
 
@@ -515,26 +548,27 @@ def build_tk_app(predictor: DiabetesPredictor):
                                        font=("Segoe UI", 13, "bold"))
             self.conf_label.grid(row=2, column=0, pady=(6, 0))
             self.prob_label = tk.Label(panel, text="P(diabetes) = —", bg=PANEL,
-                                       fg="#9FB3D9", font=("Segoe UI", 10))
+                                       fg=PALETTE["text_muted"], font=("Segoe UI", 10))
             self.prob_label.grid(row=3, column=0)
-            self.flags_label = tk.Label(panel, text="", bg=PANEL, fg="#F0C75E",
+            self.flags_label = tk.Label(panel, text="", bg=PANEL, fg=PALETTE["flag"],
                                         justify="left", font=("Segoe UI", 10))
             self.flags_label.grid(row=4, column=0, pady=(8, 0))
 
             buttons = tk.Frame(panel, bg=PANEL)
             buttons.grid(row=5, column=0, pady=14)
             tk.Button(buttons, text="🔍 Predict", width=16, font=("Segoe UI", 13, "bold"),
-                      bg=ACCENT, fg="white", activebackground="#1F55C4", activeforeground="white",
+                      bg=ACCENT, fg="white", activebackground=PALETTE["accent_h"], activeforeground="white",
                       relief="flat", cursor="hand2", pady=8,
                       command=self._do_predict).grid(row=0, column=0, padx=8)
             tk.Button(buttons, text="↺ Reset", width=10, font=("Segoe UI", 12),
-                      bg="#3A4763", fg="white", activebackground="#2B3550",
-                      activeforeground="white", relief="flat", cursor="hand2", pady=8,
+                      bg=PALETTE["btn_idle"], fg=PALETTE["idle_text"],
+                      activebackground=PALETTE["btn_idle_h"], activeforeground=PALETTE["idle_text"],
+                      relief="flat", cursor="hand2", pady=8,
                       command=self._do_reset).grid(row=0, column=1, padx=8)
 
             tk.Label(panel, text="Aplikasi ini adalah alat bantu edukasi & pendukung keputusan.\n"
                                  "Diagnosis definitif tetap harus dilakukan oleh tenaga medis.",
-                     bg=PANEL, fg="#7C8AA5", justify="center",
+                     bg=PANEL, fg=PALETTE["text_muted"], justify="center",
                      font=("Segoe UI", 9)).grid(row=7, column=0, pady=(0, 12))
 
         def _read_form(self) -> dict:
@@ -562,20 +596,21 @@ def build_tk_app(predictor: DiabetesPredictor):
 
         def _show_result(self, result: dict) -> None:
             if result["positive"]:
-                self.status_label.configure(text="✚  POSITIVE — DIABETIC", bg=COLOR_DANGER)
+                self.status_label.configure(text=f"✚  {TEXT_POSITIVE}", bg=COLOR_DANGER)
             else:
-                self.status_label.configure(text="✔  NEGATIVE — NON-DIABETIC", bg=COLOR_OK)
+                self.status_label.configure(text=f"✔  {TEXT_NEGATIVE}", bg=COLOR_OK)
             self.conf_label.configure(
                 text=f"Confidence: {result['confidence'] * 100:.1f}%  (P = {result['prob']:.3f})")
             self.prob_label.configure(
                 text=f"P(diabetes) = {result['prob']:.4f}   |   ambang θ = {result['threshold']:.2f}"
-                     f"   →   kelas = {'Positif' if result['positive'] else 'Negatif'}")
+                     f"   →   hasil: {TEXT_POSITIVE if result['positive'] else TEXT_NEGATIVE}")
             self.flags_label.configure(
                 text=("⚠ Faktor risiko terdeteksi:\n• " + "\n• ".join(result["flags"]))
                 if result["flags"] else "")
 
         def _clear_result(self) -> None:
-            self.status_label.configure(text="Menunggu prediksi…", bg="#2A3550")
+            self.status_label.configure(text="Menunggu prediksi…", bg=PALETTE["idle"],
+                                        fg=PALETTE["idle_text"])
             self.conf_label.configure(text="Confidence: —")
             self.prob_label.configure(text="P(diabetes) = —")
             self.flags_label.configure(text="")
@@ -611,19 +646,19 @@ def main() -> int:
         }
         for name, rec in demo.items():
             res = predictor.predict(rec)
-            status = "POSITIF Diabetes" if res["positive"] else "NEGATIF (Non-Diabetic)"
+            status = TEXT_POSITIVE if res["positive"] else TEXT_NEGATIVE
             print(f"  [{name}] P={res['prob']:.4f} → {status}")
         print("SELFTEST OK")
         return 0
 
-    # GUI: coba CustomTkinter (modern), fallback ke Tkinter bawaan
+    # GUI: coba CustomTkinter (modern), fallback ke Tkinter bawaan — keduanya light
     try:
         import customtkinter  # noqa: F401
         app = build_ctk_app(predictor)
-        print("GUI: CustomTkinter")
+        print("GUI: CustomTkinter (light theme)")
     except ImportError:
         app = build_tk_app(predictor)
-        print("GUI: Tkinter (fallback — pip install customtkinter untuk tampilan modern)")
+        print("GUI: Tkinter (fallback, light theme — pip install customtkinter untuk tampilan modern)")
 
     app.mainloop()
     return 0

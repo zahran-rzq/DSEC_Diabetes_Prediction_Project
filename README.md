@@ -1,7 +1,23 @@
 # 🩺 Diabetes Prediction System — Custom Deep Neural Network
 
-**Tugas Proyek — Elektronika Cerdas (Semester Gasal 2026/2027)**
+**Tugas Proyek + Jawaban ETS — Dasar Sistem Elektronika Cerdas (Semester Gasal 2026/2027)**
 Departemen Teknik Elektro · FTEIC · Institut Teknologi Sepuluh Nopember
+
+> ## 📝 Kepatuhan ETS (Soal 1) — terpenuhi
+> | Ketentuan ETS | Status |
+> |---|---|
+> | Dataset Kaggle `iammustafatz/diabetes-prediction-dataset` | ✅ `diabetes_prediction_dataset.csv` |
+> | Input manual 8 atribut + panel hasil | ✅ `src/app.py` (CustomTkinter, light theme) |
+> | Teks prediksi **"Risiko Diabetes" / "Tidak Berisiko Diabetes"** | ✅ status label GUI + `--selftest` |
+> | Light theme keseluruhan antarmuka | ✅ `set_appearance_mode("light")` + palet terang (termasuk fallback Tkinter) |
+> | Plot: light theme | ✅ style `whitegrid` |
+> | Plot: sumbu waktu = **menit** (bukan indeks) | ✅ `assets/figures/fig_training_history.png` + `artifacts/epoch_timing.json` (estimasi dari 1 epoch terukur, tanpa retrain) |
+> | Plot: **tanpa jitter** | ✅ tidak ada stripplot/swarmplot |
+> | Laporan jawaban .pdf lengkap + gambar UI | ✅ `laporan/Laporan_ETS_DSEC_Prediksi_Diabetes.pdf` (17 hal.) |
+>
+> Alat bantu ETS: `src/estimate_epoch_times.py` (estimasi durasi epoch),
+> `src/make_ui_mockup.py` (mockup UI 3 keadaan), `laporan/build_ets_report.py`
+> (generator PDF jawaban ETS — isi nama/NRP lewat `--nama`/`--nrp`).
 
 Clinical Decision Support System untuk memprediksi risiko diabetes mellitus dari 8 fitur
 rekam medis, berbasis **custom Multi-Layer Perceptron (TensorFlow/Keras)** dengan aplikasi
@@ -36,15 +52,20 @@ desktop **CustomTkinter** dan inferensi real-time.
 ├── src/
 │   ├── diabetes_model_development.ipynb   # FASE I : EDA → split → preprocessing →
 │   │                                      #         Model A vs B → evaluasi → ekspor
-│   ├── app.py                             # FASE II+III : GUI desktop + integrasi inferensi
+│   ├── app.py                             # FASE II+III : GUI desktop (LIGHT) + inferensi
 │   ├── test_backend.py                    # uji mandiri backend (python src/test_backend.py)
+│   ├── estimate_epoch_times.py            # ETS : estimasi durasi epoch → plot sumbu menit
+│   ├── make_ui_mockup.py                  # ETS : mockup UI (3 keadaan) untuk laporan
 │   └── make_submission_zip.py             # pembuat berkas .zip pengumpulan
 ├── artifacts/
 │   ├── model.keras                        # Model B terlatih (produksi)
 │   ├── preprocessor.pkl                   # StandardScaler+OneHotEncoder+ambang θ*
-│   └── training_history.json              # riwayat training & metrik
-├── assets/figures/                        # figur EDA & evaluasi (ROC, PR, CM, dll.)
+│   ├── training_history.json              # riwayat training & metrik
+│   └── epoch_timing.json                  # ETS : durasi 1 epoch terukur (sumbu menit)
+├── assets/figures/                        # figur EDA & evaluasi + mockup UI (light)
 └── laporan/
+    ├── Laporan_ETS_DSEC_Prediksi_Diabetes.pdf   # ★ JAWABAN ETS (17 hal.)
+    ├── build_ets_report.py                # generator jawaban ETS (--nama/--nrp)
     ├── Laporan_Teknis_Prediksi_Diabetes.pdf  # laporan teknis (16 hal.)
     └── build_report.py                    # generator laporan (opsional)
 ```
@@ -66,10 +87,12 @@ pip install -r requirements.txt
 python src/app.py
 ```
 
+- **Light theme** di seluruh antarmuka (ketentuan ETS) — CustomTkinter maupun fallback Tkinter.
 - Panel kiri **Patient Information**: 4 dropdown (Gender, Hypertension, Heart Disease,
   Smoking History) + 4 entry numerik (Age, BMI, HbA1c, Blood Glucose).
-- Panel kanan **Diabetes Diagnosis**: status **hijau** (NEGATIVE) / **merah** (POSITIVE),
-  confidence score, probabilitas, faktor risiko klinis, tombol **Predict** dan **Reset**.
+- Panel kanan **Diabetes Diagnosis**: status **merah** ("Risiko Diabetes") / **hijau**
+  ("Tidak Berisiko Diabetes") sesuai ketentuan ETS, confidence score, probabilitas,
+  faktor risiko klinis, tombol **Predict** dan **Reset**.
 - Input kosong / tidak valid / di luar rentang klinis ditolak dengan dialog pop-up.
 - Tanpa CustomTkinter, aplikasi otomatis memakai fallback Tkinter bawaan Python.
 - Uji cepat tanpa GUI: `python src/app.py --selftest` dan `python src/test_backend.py`.
@@ -86,10 +109,16 @@ langsung dibaca ulang oleh GUI.
 ## 📦 Pengumpulan (MyITS Classroom)
 
 ```bash
+# 1) Isi identitas di laporan ETS, lalu bangun ulang PDF:
+.venv/bin/python laporan/build_ets_report.py --nama "Nama Lengkap" --nrp 07xxxxxxxx
+
+# 2) (Opsional) kemas seluruh proyek:
 python src/make_submission_zip.py --nama "Nama Lengkap" --nrp 07xxxxxxxx
 # menghasilkan: TugasProyek_EC_NamaLengkap_NRP.zip
 ```
 
+> **ETS:** unggah `laporan/Laporan_ETS_DSEC_Prediksi_Diabetes.pdf` ke MyITS Classroom
+> pada waktu pengumpulan; demo aplikasi (`python src/app.py`) akan dilaksanakan di kelas.
 > Video demonstrasi (1–3 menit) direkam mandiri oleh mahasiswa sesuai ketentuan tugas.
 
 ## 📄 Laporan Teknis

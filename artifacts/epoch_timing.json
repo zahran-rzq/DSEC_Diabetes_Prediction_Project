@@ -1,0 +1,23 @@
+{
+  "method": "Wall-clock 1 epoch (train+validasi, batch 1024, verbose=0) pada arsitektur & ukuran data yang identik dengan training asli; model produksi di artifacts/ TIDAK dilatih ulang.",
+  "seed": 42,
+  "n_train": 67302,
+  "n_val": 14422,
+  "n_train_smotenc": 122730,
+  "n_epochs_original": {
+    "model_a": 59,
+    "model_b": 59,
+    "model_c": 35
+  },
+  "models": {
+    "model_a": {
+      "seconds_per_epoch": 1.599
+    },
+    "model_b": {
+      "seconds_per_epoch": 1.742
+    },
+    "model_c": {
+      "seconds_per_epoch": 2.504
+    }
+  }
+}

@@ -19,8 +19,10 @@ INCLUDE = [
     "artifacts/model.keras",
     "artifacts/preprocessor.pkl",
     "artifacts/training_history.json",
+    "artifacts/epoch_timing.json",
     # Fase laporan & dokumen
     "laporan/Laporan_Teknis_Prediksi_Diabetes.pdf",
+    "laporan/Laporan_ETS_DSEC_Prediksi_Diabetes.pdf",
     "README.md",
     "requirements.txt",
     "diabetes_prediction_dataset.csv",
